@@ -179,7 +179,7 @@ private:
   void filterImageAll (uint8_t* I,uint8_t* I_du,uint8_t* I_dv,int16_t* I_f1,int16_t* I_f2,const int* dims);
   void filterImageSobel (uint8_t* I,uint8_t* I_du,uint8_t* I_dv,const int* dims);
   inline void computeDescriptor (const uint8_t* I_du,const uint8_t* I_dv,const int32_t &bpl,const int32_t &u,const int32_t &v,uint8_t *desc_addr);
-    inline void computeDescriptorBRISK(const uint8_t *I_du, const uint8_t *I_dv, const int32_t &bpl, const int32_t &u, const int32_t &v, uint8_t *desc_addr);
+    void computedescriptorBRISK(uint8_t* I,const int* dims, std::vector<Matcher::maximum> &maxima);
   inline void computeSmallDescriptor (const uint8_t* I_du,const uint8_t* I_dv,const int32_t &bpl,const int32_t &u,const int32_t &v,uint8_t *desc_addr);
   void computeDescriptors (uint8_t* I_du,uint8_t* I_dv,const int32_t bpl,std::vector<Matcher::maximum> &maxima);
   
