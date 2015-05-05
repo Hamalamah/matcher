@@ -22,7 +22,8 @@ Street, Fifth Floor, Boston, MA 02110-1301, USA
 #include "matcher.h"
 #include "triangle.h"
 #include "filter.h"
-
+#include "opencv2/features2d/features2d.hpp"
+#include <vector>
 using namespace std;
 
 //////////////////////
@@ -476,9 +477,49 @@ inline void Matcher::computeDescriptor (const uint8_t* I_du,const uint8_t* I_dv,
   desc_addr[k++] = I_dv[addr_p3+5];
 }
 
-inline void Matcher::computeDescriptorBRISK(const uint8_t *I_du, const uint8_t *I_dv, const int32_t &bpl, const int32_t &u, const int32_t &v, uint8_t *desc_addr)
+void Matcher::computedescriptorBRISK(uint8_t *I, const int *dims, std::vector<Matcher::maximum> &maxima)
 {
     
+    //transform unit8_t to mat
+    cv::Mat img;
+    img = cv::Mat(dims[1],dims[2],CV_8UC1);
+    memcpy(img.ptr(),I,dims[2]*dims[1]);
+    
+    // transform vector<Matcher::maximum> to vector<cv::KeyPoint>
+    std::vector<cv::KeyPoint> keypoints;
+    int i=0;
+    for (vector<Matcher::maximum>::iterator it=maxima.begin(); it!=maxima.end(); it++) {
+        cv::Point2f K(maxima[i].u,maxima[i].v);
+        keypoints[i].pt=K;
+        keypoints[i].size=maxima[i].val;   // this is probably wrong
+        i++;
+    }
+    
+    //descriptor
+    cv::Mat descriptorsI;
+    int Threshold=60;
+    int octaves=4;
+    float PatternScales=1.0f;
+    
+    cv::BRISK BRISKD(Threshold,octaves,PatternScales);
+    BRISKD.create("Features2D.BRISK");
+    BRISKD.compute(img,keypoints,descriptorsI);  //dont know how to input this data into libvisos matcher
+    
+    /*
+     IF WE WANT TO DO EVERYTHING WITH BRISK
+    
+     //Detection
+     BRISKD.detect(img,keypoints);
+     //Matching Bruteforce(not in this function)
+     cv::BruteForceMatcher<cv::Hamming> matcher;
+     std::vector<cv::DMatch> matches;
+     matcher.match(descriptorsI1,descriptorsI2, matches);
+     //draw matches if needed
+     cv::Mat MatchesAll;
+     cv::drawMatches( imgI1, keypointsI1, GrayI2, keypointsI2,
+     matches, MatchesAll, cv::Scalar::all(-1), cv::Scalar::all(-1),
+     vector<char>(),cv::DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
+     */
     
 }
 
@@ -518,21 +559,15 @@ void Matcher::computeDescriptors (uint8_t* I_du,uint8_t* I_dv,const int32_t bpl,
   uint8_t *desc_addr;
   
   // for all maxima do
-    if (param.brisk==1) {
-        for (vector<Matcher::maximum>::iterator it=maxima.begin(); it!=maxima.end(); it++) {
-            u = (*it).u;
-            v = (*it).v;
-            desc_addr = (uint8_t*)(&((*it).d1));
-            computeDescriptorBRISK(I_du,I_dv,bpl,u,v,desc_addr);
-    }
-if(param.brisk==0){
+    
+
   for (vector<Matcher::maximum>::iterator it=maxima.begin(); it!=maxima.end(); it++) {
     u = (*it).u;
     v = (*it).v;
     desc_addr = (uint8_t*)(&((*it).d1));
       computeDescriptor(I_du,I_dv,bpl,u,v,desc_addr);  }
-        }
-}
+    
+
 }
 inline uint8_t Matcher::saturate (int16_t in) {
   if (in<0)   return 0;
@@ -701,6 +736,8 @@ void Matcher::computeFeatures (uint8_t *I,const int32_t* dims,int32_t* &max1,int
       nms_n_sparse = max(param.nms_n,10);
     nonMaximumSuppression(I_f1,I_f2,dims_matching,maxima1,nms_n_sparse);
     computeDescriptors(I_du,I_dv,dims_matching[2],maxima1);
+     
+    
   }
   
   // extract dense maxima (2nd pass) via non-maximum suppression
